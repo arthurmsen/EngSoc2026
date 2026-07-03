@@ -3,10 +3,15 @@ const state = {
   filtered: [],
   map: null,
   markers: null,
+  statesLayer: null,
+  geoJsonData: null,
+  viewMode: "states",
   markersById: new Map(),
   selectedOwnerType: "",
   fuse: null
 };
+
+let rankingExpanded = false;
 
 const els = {
   search: document.querySelector("#searchInput"),
@@ -17,6 +22,7 @@ const els = {
   yearMin: document.querySelector("#yearMin"),
   yearMax: document.querySelector("#yearMax"),
   sortBy: document.querySelector("#sortBy"),
+  mapViewRadios: document.querySelectorAll('input[name="mapViewMode"]'),
   clear: document.querySelector("#clearFilters"),
   exportCsv: document.querySelector("#exportCsv"),
   cards: document.querySelector("#cards"),
@@ -28,12 +34,19 @@ const els = {
   detailContent: document.querySelector("#detailContent"),
   closeDetail: document.querySelector("#closeDetail"),
   kpiTotal: document.querySelector("#kpiTotal"),
-  kpiStates: document.querySelector("#kpiStates")
+  kpiStates: document.querySelector("#kpiStates"),
+  stateRanking: document.querySelector("#stateRanking"),
+  yearChart: document.querySelector("#yearChart")
 };
 
 async function init() {
-  const response = await fetch("dados.json");
-  state.data = await response.json();
+  const [dataResponse, geoJsonResponse] = await Promise.all([
+    fetch("dados.json"),
+    fetch("brazil-states.geojson")
+  ]);
+  state.data = await dataResponse.json();
+  state.geoJsonData = await geoJsonResponse.json();
+
   state.filtered = [...state.data];
   state.fuse = new Fuse(state.data, {
     keys: ["titulo", "cidade", "uf", "principal_responsavel", "resumo", "palavras_chave"],
@@ -44,6 +57,8 @@ async function init() {
   buildFilters();
   initMap();
   bindEvents();
+
+  // Render all elements
   render();
 }
 
@@ -72,6 +87,7 @@ function initMap() {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(state.map);
   state.markers = L.layerGroup().addTo(state.map);
+  state.statesLayer = L.layerGroup().addTo(state.map);
 }
 
 function bindEvents() {
@@ -95,6 +111,12 @@ function bindEvents() {
 
   els.exportCsv.addEventListener("click", exportCsv);
   els.sortBy.addEventListener("change", renderCards);
+  els.mapViewRadios.forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      state.viewMode = e.target.value;
+      renderMap();
+    });
+  });
   els.closeDetail.addEventListener("click", () => {
     els.detailPanel.hidden = true;
   });
@@ -146,15 +168,39 @@ function renderKpis() {
 
 function renderMap() {
   state.markers.clearLayers();
+  state.statesLayer.clearLayers();
   state.markersById.clear();
+
+  if (state.viewMode === "cities") {
+    renderCitiesMap();
+  } else {
+    renderStatesMap();
+  }
+}
+
+function renderCitiesMap() {
   const bounds = [];
   const locatableItems = state.filtered.filter(hasCoordinates);
 
   locatableItems.forEach((item) => {
     const coordinates = getCoordinates(item);
-    const marker = L.marker(coordinates)
-      .bindPopup(`<strong>${item.titulo}</strong><br>${formatLocation(item)}<br>${capitalize(item.status)}`);
-    marker.on("click", () => showDetail(item.id));
+    const popupHtml = `
+      <div class="map-popup" style="max-height: 280px; overflow-y: auto; padding-right: 4px;">
+        <h3 style="margin:0 0 8px 0;font-size:1.05rem;color:var(--text);">${item.titulo}</h3>
+        <p style="margin:0 0 12px;font-size:0.85rem;color:var(--muted)">${item.resumo}</p>
+        <dl style="font-size:0.85rem;display:grid;grid-template-columns:auto 1fr;gap:4px 8px;margin:0;color:var(--text);">
+          <dt style="font-weight:700;color:var(--muted)">Status</dt><dd style="margin:0">${capitalize(item.status)}</dd>
+          <dt style="font-weight:700;color:var(--muted)">Responsável</dt><dd style="margin:0">${item.principal_responsavel}</dd>
+          <dt style="font-weight:700;color:var(--muted)">Início</dt><dd style="margin:0">${formatDate(item.data_inicio)}</dd>
+          <dt style="font-weight:700;color:var(--muted)">Local</dt><dd style="margin:0">${formatLocation(item)}</dd>
+        </dl>
+        <div style="margin-top:12px;">
+          <a style="font-size:0.85rem;font-weight:700;color:var(--accent);text-decoration:none;" href="${item.link_acesso}" target="_blank" rel="noreferrer">Acessar fonte &rarr;</a>
+        </div>
+      </div>
+    `;
+
+    const marker = L.marker(coordinates).bindPopup(popupHtml, { maxWidth: 320 });
     marker.addTo(state.markers);
     state.markersById.set(item.id, marker);
     bounds.push(coordinates);
@@ -167,6 +213,72 @@ function renderMap() {
   }
 }
 
+function renderStatesMap() {
+  const ufCounts = countBy(state.filtered, "uf");
+  const maxCount = Math.max(...Object.values(ufCounts), 1);
+  const activeBounds = L.latLngBounds();
+
+  const geoJsonLayer = L.geoJSON(state.geoJsonData, {
+    style: (feature) => {
+      const uf = feature.properties.sigla;
+      const count = ufCounts[uf] || 0;
+      const opacity = count > 0 ? 0.3 + (0.7 * (count / maxCount)) : 0.05;
+      return {
+        fillColor: "#0c6b58",
+        weight: 1,
+        opacity: 1,
+        color: "white",
+        fillOpacity: opacity
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const uf = feature.properties.sigla;
+      const count = ufCounts[uf] || 0;
+
+      if (count > 0) {
+        activeBounds.extend(layer.getBounds());
+      }
+
+      const label = count === 1 ? "iniciativa" : "iniciativas";
+      layer.bindTooltip(`<strong>${feature.properties.name} (${uf})</strong><br>${count} ${label}`);
+      layer.on({
+        mouseover: (e) => {
+          const l = e.target;
+          l.setStyle({ weight: 3, color: '#315f9d' });
+          l.bringToFront();
+        },
+        mouseout: (e) => {
+          geoJsonLayer.resetStyle(e.target);
+        },
+        click: (e) => {
+          if (count > 0 && els.uf.value !== uf) {
+            els.uf.value = uf;
+            applyFilters();
+          } else if (els.uf.value === uf) {
+            els.uf.value = "";
+            applyFilters();
+          }
+        }
+      });
+    }
+  }).addTo(state.statesLayer);
+
+  els.mapSummary.textContent = `Distribuição por estado (clique num estado para filtrar).`;
+
+  if (state.filtered.length > 0 && activeBounds.isValid()) {
+    state.map.fitBounds(activeBounds, { padding: [28, 28], maxZoom: 7, duration: 0.8 });
+  } else if (state.filtered.length > 0) {
+    if (state.filtered.length === state.data.length) {
+      // Usa os bounds das cidades (pontos) para manter a mesma escala nacional
+      const locatableItems = state.filtered.filter(hasCoordinates);
+      const pointsBounds = L.latLngBounds(locatableItems.map(getCoordinates));
+      state.map.fitBounds(pointsBounds, { padding: [28, 28], duration: 0.8 });
+    } else {
+      state.map.fitBounds(geoJsonLayer.getBounds(), { padding: [28, 28], duration: 0.8 });
+    }
+  }
+}
+
 function renderCharts() {
   renderPieChart(els.statusChart, countBy(state.filtered, "status"), {
     activeValue: els.status.value,
@@ -176,6 +288,87 @@ function renderCharts() {
     activeValue: state.selectedOwnerType,
     filterType: "ownerType"
   });
+  renderStateRanking();
+  renderYearChart();
+}
+
+function renderStateRanking() {
+  const ufCounts = countBy(state.filtered, "uf");
+  const entries = Object.entries(ufCounts)
+    .filter(([uf]) => uf !== "null" && uf !== "undefined" && uf !== "")
+    .sort((a, b) => b[1] - a[1]);
+
+  if (!entries.length) {
+    els.stateRanking.innerHTML = "<p>Nenhum resultado disponível na pesquisa.</p>";
+    return;
+  }
+
+  const max = entries[0][1];
+  const displayEntries = rankingExpanded ? entries : entries.slice(0, 5);
+
+  const html = displayEntries.map(([uf, count], index) => {
+    const percent = Math.round((count / max) * 100);
+    return `
+      <div class="ranking-item">
+        <span class="ranking-pos">${index + 1}º</span>
+        <div style="width: 100%">
+          <div class="ranking-label">
+            <span class="ranking-name">${uf}</span>
+            <span class="ranking-value">${count}</span>
+          </div>
+          <div class="ranking-bar-wrapper">
+            <div class="ranking-bar" style="width: ${percent}%;"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  let buttonHtml = "";
+  if (entries.length > 5) {
+    const btnText = rankingExpanded ? "Ocultar ranking completo &uarr;" : "Ver ranking completo &darr;";
+    buttonHtml = `<button id="toggleRankingBtn" class="ghost-button" style="width: 100%; margin-top: 16px; border: none; font-weight: 700; color: var(--accent); background: transparent;">${btnText}</button>`;
+  }
+
+  els.stateRanking.innerHTML = html + buttonHtml;
+
+  const btn = document.querySelector("#toggleRankingBtn");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      rankingExpanded = !rankingExpanded;
+      renderStateRanking();
+    });
+  }
+}
+
+function renderYearChart() {
+  const yearCounts = {};
+  state.filtered.forEach(item => {
+    const year = getYear(item.data_inicio);
+    if (!Number.isNaN(year) && year >= 2000 && year <= 2030) {
+      yearCounts[year] = (yearCounts[year] || 0) + 1;
+    }
+  });
+
+  const entries = Object.entries(yearCounts).sort((a, b) => Number(a[0]) - Number(b[0]));
+
+  if (!entries.length) {
+    els.yearChart.innerHTML = "<p>Nenhum resultado disponível na pesquisa.</p>";
+    return;
+  }
+
+  const max = Math.max(...entries.map(e => e[1]), 1);
+
+  els.yearChart.innerHTML = entries.map(([year, count]) => {
+    const percent = Math.round((count / max) * 100);
+    return `
+      <div class="year-bar-item">
+        <div class="year-bar-fill" style="height: ${percent}%;"></div>
+        <div class="year-bar-label">${year}</div>
+        <div class="year-bar-value">${count}</div>
+      </div>
+    `;
+  }).join("");
 }
 
 function renderPieChart(container, data, options) {
@@ -192,7 +385,16 @@ function renderPieChart(container, data, options) {
     const start = cursor;
     const end = cursor + (value / total) * 100;
     cursor = end;
-    return { label, value, color: chartColors[index % chartColors.length], start, end };
+
+    let color = chartColors[index % chartColors.length];
+    const lowerLabel = String(label).toLowerCase();
+
+    if (lowerLabel === "proposta") color = "#3b82f6"; // Azul
+    if (lowerLabel === "encerrada") color = "#ef4444"; // Vermelho
+    if (lowerLabel === "projeto de lei ordinária" || lowerLabel === "projeto de lei") color = "#3b82f6"; // Azul
+    if (lowerLabel === "deputado(a)" || lowerLabel === "deputado") color = "#ef4444"; // Vermelho
+
+    return { label, value, color, start, end };
   });
 
   container.innerHTML = `
@@ -203,8 +405,8 @@ function renderPieChart(container, data, options) {
     </svg>
     <div class="pie-legend">
       ${entries.map(([label, value], index) => {
-        const percent = Math.round((value / total) * 100);
-        return `
+    const percent = Math.round((value / total) * 100);
+    return `
           <button
             class="legend-row ${label === options.activeValue ? "selected" : ""}"
             type="button"
@@ -212,12 +414,12 @@ function renderPieChart(container, data, options) {
             data-value="${escapeAttr(label)}"
             title="Filtrar por ${escapeAttr(label)}"
           >
-            <span class="legend-color" style="background:${chartColors[index % chartColors.length]}"></span>
+            <span class="legend-color" style="background:${segments[index].color}"></span>
             <span class="legend-label" title="${escapeAttr(label)}">${capitalize(label)}</span>
             <span class="legend-value">${percent}% (${value})</span>
           </button>
         `;
-      }).join("")}
+  }).join("")}
     </div>
   `;
 
@@ -268,6 +470,17 @@ function toggleInsightFilter(filterType, value) {
 function renderCards() {
   const sorted = sortItems(state.filtered);
 
+  if (sorted.length === 0) {
+    els.cards.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 64px 24px;">
+        <div style="font-size: 4rem; margin-bottom: 24px;">📭</div>
+        <h3 style="font-size: 1.5rem; margin-bottom: 8px;">Nenhuma iniciativa encontrada</h3>
+        <p style="color: var(--muted); font-size: 1rem;">Tente ajustar os filtros ou pesquise com outras palavras para ver mais resultados.</p>
+      </div>
+    `;
+    return;
+  }
+
   els.cards.innerHTML = sorted.map((item) => `
     <article class="card">
       <div class="meta">
@@ -297,11 +510,14 @@ function sortItems(items) {
   const sortBy = els.sortBy.value;
 
   return sorted.sort((a, b) => {
-    if (sortBy === "data_asc") return new Date(a.data_inicio) - new Date(b.data_inicio);
+    const dateA = parseDateValue(a.data_inicio) || new Date(0);
+    const dateB = parseDateValue(b.data_inicio) || new Date(0);
+
+    if (sortBy === "data_asc") return dateA - dateB;
     if (sortBy === "nome_asc") return a.titulo.localeCompare(b.titulo, "pt-BR");
     if (sortBy === "nome_desc") return b.titulo.localeCompare(a.titulo, "pt-BR");
     if (sortBy === "status_asc") return a.status.localeCompare(b.status, "pt-BR") || a.titulo.localeCompare(b.titulo, "pt-BR");
-    return new Date(b.data_inicio) - new Date(a.data_inicio);
+    return dateB - dateA;
   });
 }
 
@@ -327,18 +543,19 @@ function showDetail(id) {
     <p><a class="link" href="${item.link_acesso}" target="_blank" rel="noreferrer">Acessar referência</a></p>
   `;
   els.detailPanel.hidden = false;
-  focusMapOnItem(item);
 }
 
 function focusMapOnItem(item) {
-  const marker = state.markersById.get(item.id);
   if (!hasCoordinates(item)) return;
 
   state.map.flyTo(getCoordinates(item), 11, { duration: 0.9 });
 
-  if (marker) {
-    marker.openPopup();
-  }
+  setTimeout(() => {
+    const marker = state.markersById.get(item.id);
+    if (marker) {
+      marker.openPopup();
+    }
+  }, 900);
 }
 
 function exportCsv() {

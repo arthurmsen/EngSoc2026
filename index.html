@@ -1,119 +1,144 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Observatório de Moedas Sociais</title>
-    <link rel="preconnect" href="https://unpkg.com" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">Políticas públicas (Dados sintéticos)</p>
-        <h1>Observatório de Moedas Sociais</h1>
-      </div>
-      <button id="exportCsv" class="primary-button" type="button">Exportar CSV</button>
-    </header>
 
-    <main>
-      <section class="filters" aria-label="Filtros de consulta">
-        <label>
-          Busca
-          <input id="searchInput" type="search" placeholder="Título, cidade, resumo, responsável..." />
-        </label>
-        <label>
-          UF
-          <select id="ufFilter"></select>
-        </label>
-        <label>
-          Responsável
-          <select id="responsavelFilter"></select>
-        </label>
-        <label>
-          Palavra-chave
-          <select id="tagFilter"></select>
-        </label>
-        <label>
-          Status
-          <select id="statusFilter"></select>
-        </label>
-        <label>
-          Ano inicial
-          <input id="yearMin" type="number" min="2000" max="2030" />
-        </label>
-        <label>
-          Ano final
-          <input id="yearMax" type="number" min="2000" max="2030" />
-        </label>
-        <button id="clearFilters" class="ghost-button" type="button">Limpar</button>
-      </section>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Observatório de Moedas Sociais</title>
+  <link rel="preconnect" href="https://unpkg.com" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
 
-      <section class="kpis" aria-label="Indicadores">
-        <article>
-          <span id="kpiTotal">0</span>
-          <p>iniciativas filtradas</p>
-        </article>
-        <article>
-          <span id="kpiStates">0</span>
-          <p>UFs representadas</p>
-        </article>
-      </section>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Políticas públicas</p>
+      <h1>Observatório de Moedas Sociais</h1>
+    </div>
+  </header>
 
-      <section class="workspace">
-        <div class="map-panel">
-          <div class="section-heading">
+  <main>
+    <section class="filters" aria-label="Filtros de consulta">
+      <label>
+        Busca
+        <input id="searchInput" type="search" placeholder="Título, cidade, resumo, responsável..." />
+      </label>
+      <label>
+        UF
+        <select id="ufFilter"></select>
+      </label>
+      <label>
+        Responsável
+        <select id="responsavelFilter"></select>
+      </label>
+      <label>
+        Palavra-chave
+        <select id="tagFilter"></select>
+      </label>
+      <label>
+        Status
+        <select id="statusFilter"></select>
+      </label>
+      <label>
+        Ano inicial
+        <input id="yearMin" type="number" min="2000" max="2030" />
+      </label>
+      <label>
+        Ano final
+        <input id="yearMax" type="number" min="2000" max="2030" />
+      </label>
+      <button id="clearFilters" class="ghost-button" type="button">Limpar</button>
+    </section>
+
+    <section class="kpis" aria-label="Indicadores">
+      <article>
+        <span id="kpiTotal">0</span>
+        <p>iniciativas filtradas</p>
+      </article>
+      <article>
+        <span id="kpiStates">0</span>
+        <p>UFs representadas</p>
+      </article>
+    </section>
+
+    <section class="workspace">
+      <div class="map-panel">
+        <div class="section-heading">
+          <div>
             <h2>Mapa</h2>
             <p id="mapSummary">Distribuição territorial das iniciativas.</p>
           </div>
-          <div id="map"></div>
+          <div class="view-toggle" aria-label="Modo de visualização do mapa">
+            <input type="radio" id="viewStates" name="mapViewMode" value="states" checked>
+            <label for="viewStates">Estados</label>
+            <input type="radio" id="viewCities" name="mapViewMode" value="cities">
+            <label for="viewCities">Cidades</label>
+          </div>
         </div>
-
-        <aside class="insights-panel">
-          <div class="section-heading">
+        <div id="map"></div>
+      </div>
+      <aside class="insights-panel">
+        <div class="section-heading">
+          <div>
             <h2>Insights</h2>
             <p>Recortes automáticos a partir dos filtros.</p>
           </div>
-          <div class="chart-block">
-            <h3>Por status</h3>
-            <div id="statusChart" class="pie-chart"></div>
-          </div>
-          <div class="chart-block">
-            <h3>Por tipo de responsável</h3>
-            <div id="ownerChart" class="pie-chart"></div>
-          </div>
-        </aside>
-      </section>
-
-      <section class="results-section">
-        <div class="section-heading">
-          <div>
-            <h2>Iniciativas</h2>
-            <p id="resultCount">0 resultados</p>
-          </div>
-          <label class="sort-control">
-            Ordenar por
-            <select id="sortBy">
-              <option value="data_desc">Data mais recente</option>
-              <option value="data_asc">Data mais antiga</option>
-              <option value="nome_asc">Nome A-Z</option>
-              <option value="nome_desc">Nome Z-A</option>
-              <option value="status_asc">Situação A-Z</option>
-            </select>
-          </label>
         </div>
-        <div id="cards" class="cards"></div>
-      </section>
+        <div class="chart-block">
+          <h3>Por status</h3>
+          <div id="statusChart" class="pie-chart"></div>
+        </div>
+        <div class="chart-block">
+          <h3>Por tipo de responsável</h3>
+          <div id="ownerChart" class="pie-chart"></div>
+        </div>
+      </aside>
+    </section>
 
-      <section id="detailPanel" class="detail-panel" hidden>
-        <button id="closeDetail" class="ghost-button" type="button">Fechar detalhe</button>
-        <div id="detailContent"></div>
-      </section>
-    </main>
+    <div class="global-stats-container">
+      <div class="chart-block" style="text-align: center;">
+        <h3 style="margin-bottom: 16px;">Ranking por Estado</h3>
+        <div id="stateRanking" class="ranking-list"></div>
+      </div>
+      <div class="chart-block" style="text-align: center;">
+        <h3 style="margin-bottom: 16px;">Propostas por Ano</h3>
+        <div id="yearChart" class="year-chart"></div>
+      </div>
+    </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
-    <script src="app.js"></script>
-  </body>
+    <section class="results-section">
+      <div class="section-heading">
+        <div>
+          <h2>Iniciativas</h2>
+          <p id="resultCount">0 resultados</p>
+        </div>
+        <label class="sort-control">
+          Ordenar por
+          <select id="sortBy">
+            <option value="data_desc">Data mais recente</option>
+            <option value="data_asc">Data mais antiga</option>
+            <option value="nome_asc">Nome A-Z</option>
+            <option value="nome_desc">Nome Z-A</option>
+            <option value="status_asc">Situação A-Z</option>
+          </select>
+        </label>
+      </div>
+      <div id="cards" class="cards"></div>
+      <div style="margin-top: 40px; text-align: center;">
+        <button id="exportCsv" class="primary-button" type="button">Exportar CSV</button>
+      </div>
+    </section>
+
+    <section id="detailPanel" class="detail-panel" hidden>
+      <button id="closeDetail" class="close-icon-button" type="button" aria-label="Fechar detalhe">&times;</button>
+      <div id="detailContent"></div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+  <script src="app.js"></script>
+</body>
+
 </html>
