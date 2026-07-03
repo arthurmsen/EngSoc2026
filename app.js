@@ -36,7 +36,8 @@ const els = {
   kpiTotal: document.querySelector("#kpiTotal"),
   kpiStates: document.querySelector("#kpiStates"),
   stateRanking: document.querySelector("#stateRanking"),
-  yearChart: document.querySelector("#yearChart")
+  yearChart: document.querySelector("#yearChart"),
+  backToTop: document.querySelector("#backToTop")
 };
 
 async function init() {
@@ -109,16 +110,36 @@ function bindEvents() {
     applyFilters();
   });
 
-  els.exportCsv.addEventListener("click", exportCsv);
   els.sortBy.addEventListener("change", renderCards);
+  els.exportCsv.addEventListener("click", exportCsv);
+
   els.mapViewRadios.forEach((radio) => {
     radio.addEventListener("change", (e) => {
       state.viewMode = e.target.value;
       renderMap();
     });
   });
+
   els.closeDetail.addEventListener("click", () => {
     els.detailPanel.hidden = true;
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !els.detailPanel.hidden) {
+      closeDetail();
+    }
+  });
+
+  window.addEventListener("scroll", () => {
+    if (window.scrollY > 400) {
+      els.backToTop.classList.add("visible");
+    } else {
+      els.backToTop.classList.remove("visible");
+    }
+  });
+
+  els.backToTop.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 }
 

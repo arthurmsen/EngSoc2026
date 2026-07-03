@@ -62,6 +62,11 @@
       </article>
     </section>
 
+    <div class="scroll-indicator" aria-hidden="true" onclick="document.querySelector('.workspace').scrollIntoView({behavior: 'smooth'})">
+      <p>Veja as análises abaixo</p>
+      <div class="chevron"></div>
+    </div>
+
     <section class="workspace">
       <div class="map-panel">
         <div class="section-heading">
@@ -134,6 +139,8 @@
       <button id="closeDetail" class="close-icon-button" type="button" aria-label="Fechar detalhe">&times;</button>
       <div id="detailContent"></div>
     </section>
+
+    <button id="backToTop" class="back-to-top" aria-label="Voltar ao topo" title="Voltar ao topo">&uarr;</button>
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
