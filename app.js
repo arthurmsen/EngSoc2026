@@ -51,11 +51,13 @@ function buildFilters() {
   fillSelect(els.uf, "Todas", unique(state.data.map((item) => item.uf)));
   fillSelect(els.responsavel, "Todos", unique(state.data.map((item) => item.principal_responsavel)));
   fillSelect(els.status, "Todos", unique(state.data.map((item) => item.status)));
-  fillSelect(els.tag, "Todas", unique(state.data.flatMap((item) => item.palavras_chave)));
+  fillSelect(els.tag, "Todas", unique(state.data.flatMap((item) => item.palavras_chave || []))); // Protegido aqui também
 
-  const years = state.data.map((item) => getYear(item.data_inicio));
-  els.yearMin.value = Math.min(...years);
-  els.yearMax.value = Math.max(...years);
+  const years = state.data.map((item) => getYear(item.data_inicio)).filter((y) => !isNaN(y));
+  if (years.length > 0) {
+    els.yearMin.value = Math.min(...years);
+    els.yearMax.value = Math.max(...years);
+  }
 }
 
 function fillSelect(select, allLabel, options) {
@@ -87,9 +89,11 @@ function bindEvents() {
     els.tag.value = "";
     els.status.value = "";
     state.selectedOwnerType = "";
-    const years = state.data.map((item) => getYear(item.data_inicio));
-    els.yearMin.value = Math.min(...years);
-    els.yearMax.value = Math.max(...years);
+    const years = state.data.map((item) => getYear(item.data_inicio)).filter((y) => !isNaN(y));
+    if (years.length > 0) {
+      els.yearMin.value = Math.min(...years);
+      els.yearMax.value = Math.max(...years);
+    }
     applyFilters();
   });
 
@@ -112,9 +116,8 @@ function applyFilters() {
       && (!els.responsavel.value || item.principal_responsavel === els.responsavel.value)
       && (!els.status.value || item.status === els.status.value)
       && (!state.selectedOwnerType || item.tipo_responsavel === state.selectedOwnerType)
-      && (!els.tag.value || item.palavras_chave.includes(els.tag.value))
-      && year >= min
-      && year <= max;
+      && (!els.tag.value || (item.palavras_chave && item.palavras_chave.includes(els.tag.value)))
+      && (isNaN(year) || (year >= min && year <= max));
   });
 
   render();
@@ -273,12 +276,12 @@ function renderCards() {
       <div class="meta">
         <span class="badge ${item.status}">${capitalize(item.status)}</span>
         ${item.uf ? `<span class="tag">${item.uf}</span>` : ""}
-        <span class="tag">${getYear(item.data_inicio)}</span>
+        <span class="tag">${getYear(item.data_inicio) || "Sem ano"}</span>
       </div>
       <h3>${item.titulo}</h3>
       <p>${item.resumo}</p>
       <div class="tags">
-        ${item.palavras_chave.slice(0, 4).map((tag) => `<span class="tag">${tag}</span>`).join("")}
+        ${(item.palavras_chave || []).slice(0, 4).map((tag) => `<span class="tag">${tag}</span>`).join("")}
       </div>
       <div class="card-actions">
         <button class="ghost-button" type="button" data-id="${item.id}">Ver detalhe</button>
@@ -316,12 +319,12 @@ function showDetail(id) {
       <dt>Início</dt><dd>${formatDate(item.data_inicio)}</dd>
       <dt>Fim</dt><dd>${item.data_fim ? formatDate(item.data_fim) : "Em andamento ou não informado"}</dd>
       <dt>Status</dt><dd>${capitalize(item.status)}</dd>
-      <dt>Responsável</dt><dd>${item.principal_responsavel}</dd>
-      <dt>Tipo</dt><dd>${capitalize(item.tipo_responsavel)}</dd>
+      <dt>Responsável</dt><dd>${item.principal_responsavel || "Não informado"}</dd>
+      <dt>Tipo</dt><dd>${capitalize(item.tipo_responsavel || "Não informado")}</dd>
       <dt>Local</dt><dd>${formatLocation(item)}</dd>
-      <dt>Abrangência</dt><dd>${capitalize(item.abrangencia)}</dd>
-      <dt>Palavras-chave</dt><dd>${item.palavras_chave.join(", ")}</dd>
-      <dt>Fonte</dt><dd>${item.fonte}</dd>
+      <dt>Abrangência</dt><dd>${capitalize(item.abrangencia || "Não informada")}</dd>
+      <dt>Palavras-chave</dt><dd>${(item.palavras_chave || []).join(", ") || "Nenhuma"}</dd>
+      <dt>Fonte</dt><dd>${item.fonte || "Não informada"}</dd>
       <dt>Atualizado em</dt><dd>${formatDate(item.ultima_atualizacao)}</dd>
     </dl>
     <p><a class="link" href="${item.link_acesso}" target="_blank" rel="noreferrer">Acessar referência</a></p>
@@ -402,7 +405,7 @@ function searchableText(item) {
     item.resumo,
     item.status,
     item.abrangencia,
-    item.palavras_chave.join(" ")
+    (item.palavras_chave || []).join(" ")
   ].join(" "));
 }
 
@@ -436,12 +439,6 @@ function unique(values) {
 }
 
 function getYear(date) {
-  // Se dateString for null, undefined ou vazio, retorna um valor padrão (ex: 'Sem ano' ou 0)
-  if (!dateString) return "Sem ano"; 
-  
-  // Se não for nulo, faz o slice normalmente
-  return dateString.slice(0, 4);
-  
   const parsedDate = parseDateValue(date);
   return parsedDate ? parsedDate.getUTCFullYear() : NaN;
 }
