@@ -377,11 +377,11 @@
     "latitude": null,
     "longitude": null
   },
-  {
+{
     "id": "bh-12015",
     "titulo": "Lei - 12015/2026",
-    "data_inicio": null,
-    "data_fim": "15/05/2026",
+    "data_inicio": 46157.0,
+    "data_fim": null,
     "status": "Não informado",
     "principal_responsavel": "Ver.(a) Bruno Miranda",
     "tipo_responsavel": "Lei Ordinária",
@@ -409,8 +409,8 @@
   {
     "id": "bh-11838",
     "titulo": "Lei - 11838/2025",
-    "data_inicio": null,
-    "data_fim": "31/03/2025",
+    "data_inicio": 45747.0,
+    "data_fim": null,
     "status": "Não informado",
     "principal_responsavel": "Ver.(a) Trópia; Ver.(a) Braulio Lara; Ver.(a) Bruno Miranda; Ver.(a) Cida Falabella; Ver.(a) Ciro Pereira; Ver.(a) Dr. Bruno Pedralva; Ver.(a) Fernanda Pereira Altoé; Ver.(a) Flávia Borja; Ver.(a) Gilson Guimarães; Ver.(a) Helinho da Farmácia; Ver.(a) Henrique Braga; Ver.(a) Irlan Melo; Ver.(a) Iza Lourença; Ver.(a) Janaina Cardoso; Ver.(a) Loíde Gonçalves; Ver.(a) Maninho Félix; Ver.(a) Pedro Patrus; Ver.(a) Professor Juliano Lopes; Ver.(a) Professora Marli; Ver.(a) Rubão; Ver.(a) Wanderley Porto; Ver.(a) Wilsinho da Tabu",
     "tipo_responsavel": "Lei Ordinária",
@@ -465,8 +465,8 @@
   {
     "id": "bh-11314",
     "titulo": "Lei - 11314/2021",
-    "data_inicio": null,
-    "data_fim": "05/10/2021",
+    "data_inicio": 44474.0,
+    "data_fim": null,
     "status": "Não informado",
     "principal_responsavel": "Executivo: Mensagem nº 10, de 15/07/2021",
     "tipo_responsavel": "Lei Ordinária",
@@ -520,8 +520,8 @@
   {
     "id": "bh-11074",
     "titulo": "Lei - 11074/2017",
-    "data_inicio": null,
-    "data_fim": "05/10/2017",
+    "data_inicio": 43013.0,
+    "data_fim": null,
     "status": "Não informado",
     "principal_responsavel": "Executivo: Mensagem nº 8, de 03/07/2017",
     "tipo_responsavel": "Lei Ordinária",
@@ -573,8 +573,8 @@
   {
     "id": "bh-10152",
     "titulo": "Lei - 10152/2011",
-    "data_inicio": null,
-    "data_fim": "24/03/2011",
+    "data_inicio": 40626.0,
+    "data_fim": null,
     "status": "Não informado",
     "principal_responsavel": "Ver.(a) Iran Barbosa; Ver.(a) Adriano Ventura",
     "tipo_responsavel": "Lei Ordinária",
@@ -648,8 +648,8 @@
   {
     "id": "bh-9543",
     "titulo": "Lei - 9543/2008",
-    "data_inicio": null,
-    "data_fim": "01/04/2008",
+    "data_inicio": 39539.0,
+    "data_fim": null,
     "status": "Revogada",
     "principal_responsavel": "Ver.(a) Luzia Ferreira",
     "tipo_responsavel": "Lei Ordinária",
