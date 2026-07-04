@@ -439,7 +439,10 @@ function unique(values) {
 }
 
 function getYear(date) {
+  // Usa a sua função original para converter o valor do Excel ou string em data real
   const parsedDate = parseDateValue(date);
+  
+  // Se a data for válida, extrai o ano. Se for nula/inválida, retorna NaN com segurança
   return parsedDate ? parsedDate.getUTCFullYear() : NaN;
 }
 
