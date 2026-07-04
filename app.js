@@ -436,6 +436,12 @@ function unique(values) {
 }
 
 function getYear(date) {
+  // Se dateString for null, undefined ou vazio, retorna um valor padrão (ex: 'Sem ano' ou 0)
+  if (!dateString) return "Sem ano"; 
+  
+  // Se não for nulo, faz o slice normalmente
+  return dateString.slice(0, 4);
+  
   const parsedDate = parseDateValue(date);
   return parsedDate ? parsedDate.getUTCFullYear() : NaN;
 }
